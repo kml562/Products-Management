@@ -9,46 +9,51 @@ const userSchema = new Schema({
     },
     lname: {
         type: String,
-        require:true,
+        require: true,
     },
     email: {
         type: String,
         require: true,
         unique: true,
         validate: {
-            function (email) {
+            function(email) {
                 const emailregex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
                 return emailregex.test(email);
             },
-            message:'invalid email type',
-        } 
+            message: 'invalid email type',
+        }
     },
-    profileImage: {
-        
+    profileImage: {   //s3 link------------
+        type: String,
+        required: true
+    },
+    phone: {
+        type: Number,
+        required: true,
+        unique: true,
+    },
+    password: {
+        type: String,
+        required: true,
+        unique: true,
+    },
+    address: {
+        shipping: {
+            type: String, require: true
+        },
+        city: {
+            type: String, require: true
+        },
+        pincode: { type: Number, require: true },
+    },
+    billing: {
+        street: { type: String, require: true },
+        city: { type: String, require: true },
+        pincode: { type: Number, require: true },
     }
-})
+}, { timestamp: true });
 
 
 
-// { 
-//     fname: {string, mandatory},
-//     lname: {string, mandatory},
-//     email: {string, mandatory, valid email, unique},
-//     profileImage: {string, mandatory}, // s3 link
-//     phone: {string, mandatory, unique, valid Indian mobile number}, 
-//     password: {string, mandatory, minLen 8, maxLen 15}, // encrypted password
-//     address: {
-//       shipping: {
-//         street: {string, mandatory},
-//         city: {string, mandatory},
-//         pincode: {number, mandatory}
-//       },
-//       billing: {
-//         street: {string, mandatory},
-//         city: {string, mandatory},
-//         pincode: {number, mandatory}
-//       }
-//     },
-//     createdAt: {timestamp},
-//     updatedAt: {timestamp}
-//   }
+const userModel = model("User", userSchema);
+module.exports = userModel;
