@@ -1,59 +1,75 @@
 import mongoose from "mongoose";
-const objectId = mongoose.Schema.Types.ObjectId;
 const { Schema, model } = mongoose;
 
-const userSchema = new Schema({
+const userSchema = new Schema(
+  {
     fname: {
-        type: String,
-        require: true
+      type: String,
+      required: true,
     },
     lname: {
-        type: String,
-        require: true,
+      type: String,
+      required: true,
     },
     email: {
-        type: String,
-        require: true,
-        unique: true,
-        validate: {
-            function(email) {
-                const emailregex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-                return emailregex.test(email);
-            },
-            message: 'invalid email type',
-        }
+      type: String,
+      required: true,
+      unique: true,
+      validate: {
+        validator: function(email) {
+          const emailregex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+          return emailregex.test(email);
+        },
+        message: "invalid email type",
+      },
     },
-    profileImage: {   //s3 link------------
-        type: String,
-        required: true
+    profileImage: {
+      type: String,
+      required: true,
     },
     phone: {
-        type: Number,
-        required: true,
-        unique: true,
+      type: Number,
+      required: true,
+      unique: true,
     },
     password: {
-        type: String,
-        required: true,
-        unique: true,
+      type: String,
+      required: true,
+      unique: true,
     },
     address: {
-        shipping: {
-            type: String, require: true
+      shipping: {
+        street: {
+          type: String,
+          required: true,
         },
         city: {
-            type: String, require: true
+          type: String,
+          required: true,
         },
-        pincode: { type: Number, require: true },
+        pincode: {
+          type: Number,
+          required: true,
+        },
+      },
+      billing: {
+        street: {
+          type: String,
+          required: true,
+        },
+        city: {
+          type: String,
+          required: true,
+        },
+        pincode: {
+          type: Number,
+          required: true,
+        },
+      },
     },
-    billing: {
-        street: { type: String, require: true },
-        city: { type: String, require: true },
-        pincode: { type: Number, require: true },
-    }
-}, { timestamp: true });
-
-
+  },
+  { timestamps: true }
+);
 
 const userModel = model("User", userSchema);
 export default userModel;
