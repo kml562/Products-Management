@@ -1,5 +1,4 @@
-{
-  "name": "products-management",
+{ "name": "products-management",
   "version": "1.0.0",
   "description": "e com backend",
   "main": "index.js",
