@@ -1,26 +1,82 @@
+import { uploadData } from "../aws/aws.js";
 import productModel from "../models/ProductModel.js";
 import { isValid } from "../utils/validatior/validatior.js";
 
-export const postProduct = async (req, res) => {
+// -------------------------------------------------------------------------------------------------
+// -------------------------------------------------------------------------------------------------
+
+export const createProduct = async (req, res) => {
   try {
     const {
       title,
+      description,
       price,
       currencyId,
       currencyFormat,
       isFreeShipping,
       productImage,
+      availableSizes,
     } = req.body;
 
-    const createProduct = await productModel.create(req.body);
-    if (!createProduct) {
-      res.status(400).json({ status: false, message: "some error" });
+    if (!title || !description || !price || !currencyId || !currencyFormat)
+      return res.status(400).json({
+        status: false,
+        message: "Please enter all the required fields",
+      });
+
+    const validSizes = ["S", "XS", "M", "X", "L", "XXL", "XL"];
+
+    if (
+      !Array.isArray(availableSizes) ||
+      availableSizes.length === 0 ||
+      !availableSizes.every((size) => validSizes.includes(size))
+    ) {
+      return res.status(400).json({
+        status: false,
+        message:
+          "Please provide at least one valid size from the available options",
+      });
     }
-    res.status(201).json({ status: true, message: createProduct });
+
+    const files = req.files;
+
+    if (files && files.length > 0) {
+      let uploadedFileURL = await uploadData(files[0]);
+      req.body.productImage = uploadedFileURL;
+    } else {
+      return res
+        .status(400)
+        .json({ status: false, message: "Incorrect Image" });
+    }
+
+    if (availableSizes.length === 0) {
+      return res.status(400).json({
+        status: false,
+        message: "At least one size must be specified",
+      });
+    }
+
+    // if(typeof(price) !== 'number'){
+    //     return res.status(400).json({status : false, message : "Please enter correct number"})
+    // }
+
+    const product = await productModel.create(req.body);
+
+    res.status(201).json({
+      status: true,
+      message: "Success",
+      data: product,
+    });
   } catch (error) {
-    return res.status(500).json({ message: error.message });
+    res.status(500).json({
+      status: false,
+      message: error.message,
+    });
   }
 };
+
+// -------------------------------------------------------------------------------------------------
+// -------------------------------------------------------------------------------------------------
 
 export const getProduct = async (req, res) => {
   try {
@@ -50,7 +106,7 @@ export const getProductId = async (req, res) => {
       });
     }
 
-    // Find Data-----------------------------------------------------------------------
+    // Find Data----------------------------------------------------------------------------------
     const getuserData = await productModel.findById(userId);
     if (!getuserData) {
       return res.status(400).json({
@@ -69,13 +125,6 @@ export const getProductId = async (req, res) => {
 };
 
 // getProductID------------------------------------------------------------------------------------------
-
-// PUT /products/:productId
-// Updates a product by changing at least one or all fields
-// Check if the productId exists (must have isDeleted false and is present in collection). If it doesn't, return an HTTP status 404 with a response body like this
-// Response format
-// On success - Return HTTP status 200. Also return the updated product document. The response should be a JSON object like this
-// On error - Return a suitable error message with a valid HTTP status code. The response should be a JSON object like this
 
 export const UpdateProduct = async (req, res) => {
   try {

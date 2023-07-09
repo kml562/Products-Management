@@ -1,40 +1,276 @@
-// POST /users/:userId/cart (Add to cart)
-// Create a cart for the user if it does not exist. Else add product(s) in cart.
-// Get cart id in request body.
-// Get productId in request body.
-// Make sure that cart exist.
-// Add a product(s) for a user in the cart.
-// Make sure the userId in params and in JWT token match.
-// Make sure the user exist
-// Make sure the product(s) are valid and not deleted.
-// Get product(s) details in response body.
-// Response format
-// On success - Return HTTP status 201. Also return the cart document. The response should be a JSON object like this
-// On error - Return a suitable error message with a valid HTTP status code. The response should be a JSON object like this
+import Cart from "../models/cartModel.js";
+import productModel from "../models/ProductModel.js";
+import userModel from "../models/UserModel.js";
+import { isValid } from "../utils/validatior/validatior.js";
 
-import cartModel from "../models/CartModel";
-import { isValid } from "../utils/validatior/validatior";
-
-export const postProductCart = async(req, res) => {
+// -------------------------------------------------------------------------------------------------
+export const postCartProd = async (req, res) => {
   try {
-    const { userId, items, quantity, totalPrice, totalItems } = req.body;
-    if (!userId || !items || !quantity || !totalPrice || !totalItems)
-      return res
-        .status(400)
-        .json({ status: "false", message: "filled all the required fields" });
+    const { userId } = req.params;
 
-    if (!isValid(userId))
+    if (!isValid(userId)) {
+      return res.status(400).json({
+        status: false,
+        message: "Invalid UserId",
+      });
+    }
+
+    const { items, totalPrice, totalItems } = req.body;
+
+    const { productId, quantity } = items;
+
+    if (!isValid(productId)) {
       return res
         .status(400)
-              .json({ status: "false", message: "user Id is not valid" });
-      
-      const postdata = await cartModel.create(req.body);
-      if (!postdata) {
-        return   res.status(400).json({ status: "false", message: "error in post data" });
-      };
-      return res.status(201).json({status:false, message:postdata});
-      
+        .json({ status: false, message: "Invalid productId" });
+    }
+
+    const isCart = await Cart.findOne({
+      userId: userId,
+    });
+    const isProduct = await productModel.findById(productId);
+    const isUser = await userModel.findById(userId);
+
+    if (!isUser)
+      return res.status(404).json({
+        status: false,
+        message: "User Not Found!!!",
+      });
+
+    if (!isProduct)
+      return res.status(404).json({
+        status: false,
+        message: "Product Not FOund !!!",
+      });
+
+    if (!isCart) {
+      const cart = new Cart({ userId, items, totalPrice, totalItems });
+      await cart.save();
+
+      res.status(201).json({
+        status: true,
+        message: "Success",
+        data: cart,
+      });
+    } else {
+      const existingItem = isCart.items.find(
+        (item) => item.productId.toString() === productId
+      );
+
+      if (existingItem) {
+        existingItem.quantity += 1;
+      } else {
+        isCart.items.push({
+          productId,
+          quantity,
+        });
+      }
+
+      isCart.totalPrice += Number(totalPrice) * quantity;
+      isCart.totalItems += Number(quantity);
+
+      await isCart.save();
+
+      res.status(201).json({
+        status: true,
+        message: "Success",
+        data: isCart,
+      });
+    }
   } catch (error) {
-    return res.status(500).json({ status: false, message: error.message });
+    res.status(500).json({
+      status: false,
+      message: error.message,
+    });
+  }
+};
+
+// -------------------------------------------------------------------------------------------------
+// -------------------------------------------------------------------------------------------------
+
+export const getCart = async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    if (!isValid(userId)) {
+      return res.status(400).json({
+        status: false,
+        message: "Invalid UserId",
+      });
+    }
+
+    const isUser = await userModel.findById(userId);
+
+    if (!isUser)
+      return res.status(404).json({
+        status: false,
+        message: "User Not Found!!!",
+      });
+
+    const cart = await Cart.findOne({
+      userId: userId,
+    });
+
+    if (!cart)
+      return res.status(404).json({
+        status: false,
+        message: "Cannot found Cart !!!",
+      });
+
+    res.status(200).json({
+      status: true,
+      message: "Success",
+      data: cart,
+    });
+  } catch (error) {
+    res.status(500).json({
+      status: false,
+      message: error.message,
+    });
+  }
+};
+
+
+// -------------------------------------------------------------------------------------------------
+// -------------------------------------------------------------------------------------------------
+
+export const updateCart = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const { productId, cartId, removeProduct } = req.body;
+
+    if (!isValid(userId)) {
+      return res.status(400).json({
+        status: false,
+        message: "Invalid userId",
+      });
+    }
+
+    if (!isValid(productId)) {
+      return res.status(400).json({
+        status: false,
+        message: "Invalid productId",
+      });
+    }
+
+    if (!isValid(cartId)) {
+      return res.status(400).json({
+        status: false,
+        message: "Invalid cartId",
+      });
+    }
+
+    const isUser = await userModel.findById(userId);
+
+    if (!isUser)
+      return res.status(404).json({
+        status: false,
+        message: "No User Found !!!",
+      });
+
+    const isCart = await Cart.findById(cartId);
+
+    if (!isCart)
+      return res.status(404).json({
+        status: false,
+        message: "No Cart Found !!!",
+      });
+
+    const existingItem = isCart.items.find(
+      (item) => item.productId.toString() === productId
+    );
+
+    if (!existingItem) {
+      return res.status(404).json({
+        status: false,
+        message: "Product Not Found in Cart!!!",
+      });
+    }
+
+    if (removeProduct) {
+      isCart.items = isCart.items.filter(
+        (item) => item.productId.toString() !== productId
+      );
+    } else {
+      if (existingItem.quantity <= 1) {
+        isCart.items = isCart.items.filter(
+          (item) => item.productId.toString() !== productId
+        );
+      } else {
+        if (existingItem.quantity > 0) {
+          existingItem.quantity -= 1;
+          if (isCart.totalPrice > 0) {
+            isCart.totalPrice -= isCart.totalPrice / existingItem.quantity;
+          }
+          if (isCart.totalItems > 0) {
+            isCart.totalItems -= existingItem.quantity;
+          }
+        }
+      }
+    }
+
+    await isCart.save();
+
+    return res.status(200).json({
+      status: true,
+      isCart,
+    });
+  } catch (error) {
+    res.status(500).json({
+      status: false,
+      message: error.message,
+    });
+  }
+};
+
+
+// -------------------------------------------------------------------------------------------------
+// -------------------------------------------------------------------------------------------------
+
+export const deleteCart = async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    if (!isValid(userId)) {
+      return res.status(400).json({
+        status: false,
+        message: "Invalid userId",
+      });
+    }
+
+    const isUser = await User.findById(userId);
+
+    if (!isUser)
+      return res.status(404).json({
+        status: false,
+        message: "No User Found !!!",
+      });
+
+    const isCart = await Cart.findOne({
+      userId: userId,
+    });
+
+    if (!isCart)
+      return res.status(404).json({
+        status: false,
+        message: "No Cart Found !!!",
+      });
+
+    isCart.items = [];
+    isCart.totalPrice = 0;
+    isCart.totalItems = 0;
+
+    await isCart.save();
+
+    res.status(200).json({
+      status: true,
+      message: "Success",
+      data: isCart,
+    });
+  } catch (error) {
+    res.status(500).json({
+      status: false,
+      message: error.message,
+    });
   }
 };
