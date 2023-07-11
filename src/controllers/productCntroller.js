@@ -75,6 +75,26 @@ export const createProduct = async (req, res) => {
   }
 };
 
+
+// data = {
+//   "fname": "John",
+//   "lname": "Doe",
+//   "email": "kml@mailinator.com",
+//   "phone": 9876543211,
+//   "password": "kml@52625",
+//   "address": {
+//     "shipping": {
+//       "street": "MG Road",
+//       "city": "Indore",
+//       "pincode": 452001
+//     },
+//     "billing": {
+//       "street": "MG Road",
+//       "city": "Indore",
+//       "pincode": 452001
+//     }
+//   }
+// }
 // -------------------------------------------------------------------------------------------------
 // -------------------------------------------------------------------------------------------------
 
